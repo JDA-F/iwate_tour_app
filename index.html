@@ -1,0 +1,758 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Calendar, 
+  MapPin, 
+  Utensils, 
+  ShoppingBag, 
+  Info, 
+  CheckCircle, 
+  Circle, 
+  ExternalLink, 
+  Snowflake,
+  Train,
+  Camera,
+  Coffee,
+  Check,
+  Briefcase,
+  ThermometerSnowflake,
+  BatteryCharging,
+  Shirt,
+  Sparkles,
+  ChevronRight,
+  Clock,
+  Building,
+  Copy,
+  Map, // Mapアイコン
+  Navigation
+} from 'lucide-react';
+
+// 雪のアニメーションコンポーネント
+const Snowfall = () => {
+  const snowflakes = Array.from({ length: 30 }).map((_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    animationDuration: `${Math.random() * 5 + 5}s`,
+    animationDelay: `${Math.random() * 5}s`,
+    opacity: Math.random() * 0.5 + 0.3,
+    size: Math.random() * 10 + 5,
+  }));
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden" aria-hidden="true">
+      {snowflakes.map((flake) => (
+        <div
+          key={flake.id}
+          className="absolute top-[-20px] text-slate-300/40 animate-fall"
+          style={{
+            left: flake.left,
+            animationDuration: flake.animationDuration,
+            animationDelay: flake.animationDelay,
+            opacity: flake.opacity,
+            fontSize: `${flake.size}px`,
+          }}
+        >
+          ❄
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// スポットデータの定義
+const SPOTS = [
+  { id: 'morioka_st', category: 'station', title: '盛岡駅', desc: '旅の拠点', query: '盛岡駅', url: 'https://www.jreast.co.jp/estation/station/info.aspx?StationCd=1565' },
+  { id: 'richmond', category: 'hotel', title: 'リッチモンドホテル盛岡', desc: '1日目 宿泊 (大通)', query: 'リッチモンドホテル盛岡駅前', url: 'https://richmondhotel.jp/morioka/' },
+  { id: 'aishinkan', category: 'hotel', title: 'つなぎ温泉 愛真館', desc: '2日目 宿泊 (温泉)', query: 'つなぎ温泉 愛真館', url: 'https://www.aishinkan.co.jp/' },
+  { id: 'pyonpyon', category: 'food', title: 'ぴょんぴょん舎 盛岡駅前店', desc: '盛岡冷麺・焼肉', query: 'ぴょんぴょん舎 盛岡駅前店', url: 'https://www.pyonpyonsya.co.jp/shop/shop02/' },
+  { id: 'seiroukaku', category: 'food', title: '盛楼閣', desc: '盛岡冷麺・焼肉', query: '盛楼閣', url: 'http://www.gen-plaza.com/' },
+  { id: 'pairon', category: 'food', title: '白龍（パイロン）本店', desc: '盛岡じゃじゃ麺', query: '白龍 本店', url: 'https://www.pairon.iwate.jp/' },
+  { id: 'wanko', category: 'food', title: 'そば処 東家 駅前店', desc: 'わんこそば', query: '東家 駅前店', url: 'https://wankosoba.jp/' },
+  { id: 'mahora', category: 'sight', title: 'まほら岩手', desc: '氷の世界イベント', query: 'まほら岩手', url: 'https://www.mahora-iwate.com/' },
+  { id: 'redbrick', category: 'sight', title: '岩手銀行赤レンガ館', desc: '歴史的建造物', query: '岩手銀行赤レンガ館', url: 'https://www.iwagin-akarengakan.jp/' },
+  { id: 'castle', category: 'sight', title: '盛岡城跡公園', desc: '歴史散策', query: '盛岡城跡公園', url: 'http://www.moriokashiroato.jp/' },
+  { id: 'handcraft', category: 'sight', title: '盛岡手づくり村', desc: '伝統工芸体験', query: '盛岡手づくり村', url: 'https://tezukurimura.com/' },
+  { id: 'fesan', category: 'shop', title: '盛岡駅ビル フェザン', desc: 'お土産・ショッピング', query: '盛岡駅ビル フェザン', url: 'https://fesan-jp.com/' },
+];
+
+const App = () => {
+  const [activeTab, setActiveTab] = useState('schedule');
+  const [activeDay, setActiveDay] = useState(1);
+  
+  // マップ用のステート
+  const [currentMapQuery, setCurrentMapQuery] = useState('盛岡駅');
+  
+  // --- データ保存のための初期化ロジック ---
+  const [conqueredNoodles, setConqueredNoodles] = useState(() => {
+    try {
+      const saved = localStorage.getItem('morioka_noodles_v1');
+      return saved ? JSON.parse(saved) : { reimen: false, jajamen: false, wanko: false };
+    } catch (e) {
+      return { reimen: false, jajamen: false, wanko: false };
+    }
+  });
+  
+  const [souvenirChecklist, setSouvenirChecklist] = useState(() => {
+    try {
+      const saved = localStorage.getItem('morioka_souvenirs_v1');
+      return saved ? JSON.parse(saved) : { kamome: false, nanbu: false, sable: false, bindon: false, cookie: false };
+    } catch (e) {
+      return { kamome: false, nanbu: false, sable: false, bindon: false, cookie: false };
+    }
+  });
+
+  const [prepChecklist, setPrepChecklist] = useState(() => {
+    try {
+      const saved = localStorage.getItem('morioka_prep_v1');
+      return saved ? JSON.parse(saved) : { shoes: false, coat: false, inner: false, muffler: false, battery: false, kairo: false, lip: false };
+    } catch (e) {
+      return { shoes: false, coat: false, inner: false, muffler: false, battery: false, kairo: false, lip: false };
+    }
+  });
+
+  // --- データ変更時に自動保存 ---
+  useEffect(() => {
+    localStorage.setItem('morioka_noodles_v1', JSON.stringify(conqueredNoodles));
+  }, [conqueredNoodles]);
+
+  useEffect(() => {
+    localStorage.setItem('morioka_souvenirs_v1', JSON.stringify(souvenirChecklist));
+  }, [souvenirChecklist]);
+
+  useEffect(() => {
+    localStorage.setItem('morioka_prep_v1', JSON.stringify(prepChecklist));
+  }, [prepChecklist]);
+
+  // --- リアルタイムカウントダウンロジック ---
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const targetDate = new Date('2026-01-24T00:00:00');
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const difference = targetDate - now;
+
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((difference / 1000 / 60) % 60);
+        const seconds = Math.floor((difference / 1000) % 60);
+        setTimeLeft({ days, hours, minutes, seconds });
+      } else {
+        // 旅行当日または過ぎている場合
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleNoodle = (key) => setConqueredNoodles(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleSouvenir = (key) => setSouvenirChecklist(prev => ({ ...prev, [key]: !prev[key] }));
+  const togglePrep = (key) => setPrepChecklist(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const noodleProgress = Object.values(conqueredNoodles).filter(Boolean).length;
+  const prepProgress = Object.values(prepChecklist).filter(Boolean).length;
+  const prepTotal = Object.keys(prepChecklist).length;
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans pb-28 max-w-md mx-auto shadow-2xl overflow-hidden relative">
+      
+      {/* Snowfall Effect Background */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <Snowfall />
+      </div>
+
+      {/* Premium Header with Animation */}
+      <div className="bg-[#0f172a] text-white pt-8 pb-12 px-6 rounded-b-[2.5rem] shadow-xl relative overflow-hidden z-10">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 right-0 opacity-20 transform translate-x-12 -translate-y-4 animate-spin-slow">
+          <Snowflake size={180} strokeWidth={1} />
+        </div>
+        <div className="absolute top-20 left-10 opacity-10 animate-float">
+          <Sparkles size={60} strokeWidth={1} />
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <p className="text-amber-400 text-[10px] uppercase tracking-[0.3em] mb-3 font-medium animate-fadeIn">Winter Journey 2026</p>
+          <h1 className="text-3xl font-serif font-medium leading-tight mb-6 tracking-wide animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+            盛岡<br/><span className="text-2xl">冬の美食紀行</span>
+          </h1>
+
+          {/* Real-time Countdown & Progress */}
+          <div className="flex flex-col w-full gap-4 animate-fadeIn" style={{ animationDelay: '0.4s' }}>
+             
+             {/* Improved Countdown Block */}
+             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 w-full shadow-lg">
+               <span className="text-[10px] text-slate-300 uppercase tracking-widest mb-2 flex items-center justify-center gap-1 font-bold">
+                 <Clock size={12} className="text-amber-400" /> Time Until Departure
+               </span>
+               <div className="flex items-center justify-center gap-2 sm:gap-4 font-serif text-white mt-1">
+                 
+                 {/* Days */}
+                 <div className="flex flex-col items-center min-w-[3.5rem]">
+                   <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none drop-shadow-md">{timeLeft.days}</span>
+                   <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">DAYS</span>
+                 </div>
+                 
+                 <span className="text-slate-500 text-xl pb-3">:</span>
+                 
+                 {/* Hours */}
+                 <div className="flex flex-col items-center min-w-[2.5rem]">
+                   <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none drop-shadow-md">{String(timeLeft.hours).padStart(2, '0')}</span>
+                   <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">HOURS</span>
+                 </div>
+
+                 <span className="text-slate-500 text-xl pb-3">:</span>
+
+                 {/* Minutes */}
+                 <div className="flex flex-col items-center min-w-[2.5rem]">
+                   <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none drop-shadow-md">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                   <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">MINS</span>
+                 </div>
+
+                 <span className="text-slate-500 text-xl pb-3">:</span>
+
+                 {/* Seconds */}
+                 <div className="flex flex-col items-center min-w-[2.5rem]">
+                   <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none text-amber-400 drop-shadow-md">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                   <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">SECS</span>
+                 </div>
+
+               </div>
+             </div>
+
+             {/* Quest Progress Block (Wide version) */}
+             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 flex items-center justify-between px-5 shadow-lg">
+               <span className="text-[10px] text-slate-300 uppercase tracking-widest flex items-center gap-2 font-bold">
+                 <Utensils size={14} className="text-amber-400"/> Noodle Quest
+               </span>
+               <div className="flex items-center gap-3 flex-1 ml-4">
+                 <div className="w-full bg-slate-800/50 h-1.5 rounded-full overflow-hidden border border-white/10">
+                   <div 
+                     className="bg-amber-400 h-full transition-all duration-1000 relative" 
+                     style={{ width: `${(noodleProgress / 3) * 100}%` }}
+                   >
+                     <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/50 blur-[2px]"></div>
+                   </div>
+                 </div>
+                 <div className="flex items-baseline gap-1 text-white whitespace-nowrap">
+                   <span className="text-lg font-serif text-amber-400 leading-none">{noodleProgress}</span>
+                   <span className="text-[10px] text-slate-300 font-medium">/ 3</span>
+                 </div>
+               </div>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="px-5 -mt-6 relative z-20">
+        
+        {/* SCHEDULE TAB */}
+        {activeTab === 'schedule' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="flex justify-between items-center px-1">
+              <h2 className="text-lg font-serif font-medium text-slate-800 flex items-center gap-2">
+                <span className="text-amber-600 font-bold">I.</span> Itinerary
+              </h2>
+            </div>
+
+            {/* Luxurious Day Selector */}
+            <div className="flex bg-white p-1.5 rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-100 mb-4 z-10 relative">
+              {[1, 2, 3].map((day) => (
+                <button
+                  key={day}
+                  onClick={() => setActiveDay(day)}
+                  className={`flex-1 py-3 text-xs font-bold tracking-widest rounded-xl transition-all duration-500 ${
+                    activeDay === day 
+                      ? 'bg-slate-800 text-white shadow-md' 
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  DAY {day}
+                </button>
+              ))}
+            </div>
+
+            {/* Day 1 Content */}
+            {activeDay === 1 && (
+              <div className="space-y-4 animate-fadeIn">
+                <DaySubtitle text="到着と盛岡の夜" />
+                
+                <TimelineItem time="14:30" icon={<Train size={16} />} title="盛岡駅 到着" desc="新幹線改札を出て、冬の澄んだ空気を感じながらホテルへ。" />
+                <TimelineItem time="15:00" icon={<MapPin size={16} />} title="Check-in" desc="リッチモンドホテル盛岡（大通）" />
+                <TimelineItem time="16:00" icon={<Snowflake size={16} />} title="まほら岩手" desc="「氷の世界」イベントへ。幻想的な風景を楽しむ" link="https://www.mahora-iwate.com/" />
+                <TimelineItem 
+                  time="20:45" 
+                  icon={<Utensils size={16} />} 
+                  title="Dinner: 盛岡冷麺 & 焼肉" 
+                  desc="ぴょんぴょん舎 または 盛楼閣。極太麺のコシと牛骨スープの旨味を。" 
+                  highlight 
+                  questTarget="reimen"
+                  isConquered={conqueredNoodles.reimen}
+                  onToggle={() => toggleNoodle('reimen')}
+                />
+              </div>
+            )}
+
+            {/* Day 2 Content */}
+            {activeDay === 2 && (
+              <div className="space-y-4 animate-fadeIn">
+                <DaySubtitle text="歴史散策と名湯" />
+                
+                <TimelineItem time="11:00" icon={<MapPin size={16} />} title="Check-out" desc="荷物を持って出発" />
+                <TimelineItem time="11:30" icon={<Camera size={16} />} title="赤レンガ館・城跡公園" desc="雪化粧した歴史的建造物を散策。" link="https://www.iwagin-akarengakan.jp/" />
+                <TimelineItem 
+                  time="13:00" 
+                  icon={<Utensils size={16} />} 
+                  title="Lunch: 盛岡じゃじゃ麺" 
+                  desc="白龍（パイロン）または香醤。食後の「ちーたんたん」で温まる。" 
+                  highlight 
+                  questTarget="jajamen"
+                  isConquered={conqueredNoodles.jajamen}
+                  onToggle={() => toggleNoodle('jajamen')}
+                />
+                <TimelineItem time="14:00" icon={<Coffee size={16} />} title="Cafe Time" desc="「チロル」のチーズケーキ、または福田パン本店へ。" />
+                <TimelineItem time="15:00" icon={<Train size={16} />} title="つなぎ温泉へ移動" desc="盛岡駅西口からシャトルバスにて。" />
+                <TimelineItem time="16:00" icon={<MapPin size={16} />} title="愛真館 Check-in" desc="名湯で旅の疲れを癒すひととき。" link="https://www.aishinkan.co.jp/" />
+              </div>
+            )}
+
+            {/* Day 3 Content */}
+            {activeDay === 3 && (
+              <div className="space-y-4 animate-fadeIn">
+                <DaySubtitle text="伝統体験と旅の締めくくり" />
+                
+                <TimelineItem time="10:00" icon={<MapPin size={16} />} title="盛岡手づくり村" desc="職人の技に触れる観光スポット。" link="https://tezukurimura.com/" />
+                <TimelineItem time="12:30" icon={<Train size={16} />} title="盛岡駅へ戻る" desc="" />
+                <TimelineItem 
+                  time="13:00" 
+                  icon={<Utensils size={16} />} 
+                  title="Lunch: わんこそば体験" 
+                  desc="東家（あずまや）。掛け声と共に積み上げる、旅のハイライト。" 
+                  highlight 
+                  questTarget="wanko"
+                  isConquered={conqueredNoodles.wanko}
+                  onToggle={() => toggleNoodle('wanko')}
+                />
+                <TimelineItem time="15:00" icon={<ShoppingBag size={16} />} title="Shopping" desc="駅ビル「フェザン」で旅の思い出を購入。" link="https://fesan-jp.com/" />
+                <TimelineItem time="16:30" icon={<Train size={16} />} title="Departure" desc="新幹線で帰路へ。" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* PREPARATION TAB */}
+        {activeTab === 'prep' && (
+          <div className="space-y-6 animate-fadeIn pb-10">
+            <h2 className="text-lg font-serif font-medium text-slate-800 flex items-center gap-2">
+              <span className="text-amber-600 font-bold">II.</span> Preparation
+            </h2>
+            
+            <div className="bg-white p-5 rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200 flex items-center justify-between relative z-10">
+              <div>
+                <p className="text-[10px] text-amber-600 font-bold uppercase tracking-widest mb-1">Winter Essentials</p>
+                <p className="text-sm text-slate-800 font-serif font-medium">寒さ対策チェックリスト</p>
+              </div>
+              <div className="relative w-12 h-12 flex items-center justify-center">
+                 <svg className="absolute w-full h-full transform -rotate-90">
+                   <circle cx="24" cy="24" r="20" stroke="#e2e8f0" strokeWidth="4" fill="none" />
+                   <circle cx="24" cy="24" r="20" stroke="#d97706" strokeWidth="4" fill="none" strokeDasharray="125.6" strokeDashoffset={125.6 * (1 - prepProgress / prepTotal)} className="transition-all duration-500" />
+                 </svg>
+                 <span className="text-xs font-bold text-amber-700">{Math.round((prepProgress / prepTotal) * 100)}%</span>
+              </div>
+            </div>
+
+            <div className="space-y-3 relative z-10">
+              <SectionLabel text="MUST HAVE" />
+              <PrepItem id="shoes" title="滑り止め付きの靴" desc="最重要。雪道対応のブーツやスノーシューズ。" icon={<ThermometerSnowflake size={16} />} checked={prepChecklist.shoes} onToggle={() => togglePrep('shoes')} />
+              <PrepItem id="coat" title="厚手のダウン・コート" desc="氷点下の風を防ぐ防寒着。" icon={<Shirt size={16} />} checked={prepChecklist.coat} onToggle={() => togglePrep('coat')} />
+              <PrepItem id="inner" title="ヒートテック・インナー" desc="重ね着で温度調節を。" icon={<Shirt size={16} />} checked={prepChecklist.inner} onToggle={() => togglePrep('inner')} />
+              <PrepItem id="muffler" title="防寒小物一式" desc="手袋・マフラー・耳当てで露出を減らす。" icon={<Snowflake size={16} />} checked={prepChecklist.muffler} onToggle={() => togglePrep('muffler')} />
+              
+              <SectionLabel text="USEFUL ITEMS" />
+              <PrepItem id="battery" title="モバイルバッテリー" desc="低温下でのバッテリー消費対策。" icon={<BatteryCharging size={16} />} checked={prepChecklist.battery} onToggle={() => togglePrep('battery')} />
+              <PrepItem id="kairo" title="使い捨てカイロ" desc="貼るタイプ・マグマタイプなど。" icon={<ThermometerSnowflake size={16} />} checked={prepChecklist.kairo} onToggle={() => togglePrep('kairo')} />
+              <PrepItem id="lip" title="保湿ケア用品" desc="乾燥対策のリップ・ハンドクリーム。" icon={<CheckCircle size={16} />} checked={prepChecklist.lip} onToggle={() => togglePrep('lip')} />
+            </div>
+          </div>
+        )}
+
+        {/* FOOD TAB */}
+        {activeTab === 'food' && (
+          <div className="space-y-6 animate-fadeIn pb-10">
+            <h2 className="text-lg font-serif font-medium text-slate-800 flex items-center gap-2">
+              <span className="text-amber-600 font-bold">III.</span> Gastronomy
+            </h2>
+
+            <div className="space-y-4">
+              <NoodleCard 
+                type="盛岡冷麺" 
+                subtitle="Morioka Reimen"
+                shops={['ぴょんぴょん舎', '盛楼閣']}
+                desc="焼肉の〆ではなく「主役」。極太麺のコシと牛骨スープ。"
+                day="DAY 1 / DINNER"
+                isDone={conqueredNoodles.reimen}
+                onToggle={() => toggleNoodle('reimen')}
+                imgColor="bg-rose-50"
+                accentColor="text-rose-900"
+                emoji="🍜"
+              />
+              <NoodleCard 
+                type="盛岡じゃじゃ麺" 
+                subtitle="Morioka Jajamen"
+                shops={['白龍（パイロン）', '香醤']}
+                desc="特製肉味噌を絡めて。締めは卵スープ「ちーたんたん」。"
+                day="DAY 2 / LUNCH"
+                isDone={conqueredNoodles.jajamen}
+                onToggle={() => toggleNoodle('jajamen')}
+                imgColor="bg-amber-50"
+                accentColor="text-amber-900"
+                emoji="🍝"
+              />
+              <NoodleCard 
+                type="わんこそば" 
+                subtitle="Wanko Soba"
+                shops={['東家（あずまや）']}
+                desc="お給仕さんの掛け声と共に。食べたお椀を積み上げよう！"
+                day="DAY 3 / LUNCH"
+                isDone={conqueredNoodles.wanko}
+                onToggle={() => toggleNoodle('wanko')}
+                imgColor="bg-orange-50"
+                accentColor="text-orange-900"
+                emoji="🥣"
+              />
+            </div>
+
+            <SectionLabel text="OTHER DELICACIES" />
+            <div className="grid grid-cols-2 gap-3">
+               <GourmetCard title="福田パン" sub="Soul Food" desc="あんバターコッペパン" emoji="🥖" />
+               <GourmetCard title="岩手のお肉" sub="Premium Beef" desc="前沢牛・短角牛" emoji="🥩" />
+               <GourmetCard title="あさ開" sub="Sake" desc="盛岡の地酒・新酒" emoji="🍶" />
+               <GourmetCard title="チーズケーキ" sub="Sweets" desc="喫茶店チロルの味" emoji="🍰" />
+            </div>
+          </div>
+        )}
+
+        {/* SOUVENIR TAB */}
+        {activeTab === 'souvenir' && (
+          <div className="space-y-6 animate-fadeIn pb-10">
+             <h2 className="text-lg font-serif font-medium text-slate-800 flex items-center gap-2">
+              <span className="text-amber-600 font-bold">IV.</span> Souvenirs
+            </h2>
+            <div className="bg-white rounded-2xl shadow-lg shadow-slate-200/50 border border-slate-200 overflow-hidden divide-y divide-slate-100 z-10 relative">
+              <SouvenirItem id="kamome" title="かもめの玉子" desc="さいとう製菓 / 冬限定の味もチェック" checked={souvenirChecklist.kamome} onToggle={() => toggleSouvenir('kamome')} />
+              <SouvenirItem id="nanbu" title="南部せんべい" desc="巖手屋 / チョコ南部が冬のおすすめ" checked={souvenirChecklist.nanbu} onToggle={() => toggleSouvenir('nanbu')} />
+              <SouvenirItem id="sable" title="生南部サブレ" desc="しっとりサブレ & チョコクリーム" checked={souvenirChecklist.sable} onToggle={() => toggleSouvenir('sable')} />
+              <SouvenirItem id="bindon" title="瓶ドン" desc="牛乳瓶に詰まった海鮮丼の具" checked={souvenirChecklist.bindon} onToggle={() => toggleSouvenir('bindon')} />
+              <SouvenirItem id="cookie" title="あんバターサンドクッキー" desc="福田パン監修 / 配り用に最適" checked={souvenirChecklist.cookie} onToggle={() => toggleSouvenir('cookie')} />
+            </div>
+          </div>
+        )}
+
+        {/* MAP & INFO TAB (MERGED) */}
+        {activeTab === 'map' && (
+          <div className="space-y-6 animate-fadeIn pb-24 relative z-30">
+             <h2 className="text-lg font-serif font-medium text-slate-800 flex items-center gap-2 mb-2">
+              <span className="text-amber-600 font-bold">V.</span> Locations
+            </h2>
+            
+            {/* Map Embed Area */}
+            <div className="w-full h-64 bg-slate-100 rounded-2xl overflow-hidden shadow-md border border-slate-200 relative mb-4">
+              <iframe
+                title="Google Maps"
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                src={`https://maps.google.com/maps?q=${encodeURIComponent(currentMapQuery)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                allowFullScreen
+                className="absolute inset-0 w-full h-full"
+              ></iframe>
+              <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-[10px] text-slate-600 border border-slate-200 shadow-sm">
+                Showing: {currentMapQuery}
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500 mb-4 ml-1 font-medium">
+              リストをタップして地図を切り替えられます。
+            </p>
+
+            <div className="flex flex-col gap-3">
+              {SPOTS.map((spot) => (
+                <SpotCard 
+                  key={spot.id}
+                  spot={spot}
+                  isActive={currentMapQuery === spot.query}
+                  onActivate={() => setCurrentMapQuery(spot.query)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Luxury Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-slate-200 flex justify-around items-end pb-6 pt-3 px-2 z-50 max-w-md mx-auto shadow-[0_-10px_40px_rgba(0,0,0,0.08)]">
+        <NavButton active={activeTab === 'schedule'} onClick={() => setActiveTab('schedule')} icon={<Calendar size={22} strokeWidth={1.5} />} label="Itinerary" />
+        <NavButton active={activeTab === 'prep'} onClick={() => setActiveTab('prep')} icon={<Briefcase size={22} strokeWidth={1.5} />} label="Prepare" />
+        <NavButton active={activeTab === 'food'} onClick={() => setActiveTab('food')} icon={<Utensils size={22} strokeWidth={1.5} />} label="Dining" />
+        <NavButton active={activeTab === 'souvenir'} onClick={() => setActiveTab('souvenir')} icon={<ShoppingBag size={22} strokeWidth={1.5} />} label="Souvenirs" />
+        <NavButton active={activeTab === 'map'} onClick={() => setActiveTab('map')} icon={<Map size={22} strokeWidth={1.5} />} label="Map" />
+      </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin-slow {
+          from { transform: rotate(0deg) translateX(10px) rotate(0deg); }
+          to { transform: rotate(360deg) translateX(10px) rotate(-360deg); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-15px) rotate(10deg); }
+        }
+        @keyframes pulse-slow {
+          0%, 100% { opacity: 0.1; transform: scale(1); }
+          50% { opacity: 0.3; transform: scale(1.2); }
+        }
+        @keyframes fall {
+          0% { transform: translateY(-10vh) translateX(0); opacity: 0; }
+          10% { opacity: 1; }
+          100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
+        }
+        .animate-fall {
+          animation-name: fall;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+        }
+        .animate-fadeIn { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-spin-slow { animation: spin-slow 30s linear infinite; }
+        .animate-float { animation: float 8s ease-in-out infinite; }
+        .animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+      `}</style>
+    </div>
+  );
+};
+
+// --- Sub Components ---
+
+const NavButton = ({ active, onClick, icon, label }) => (
+  <button 
+    onClick={onClick} 
+    className={`flex flex-col items-center justify-center w-full transition-all duration-300 group ${active ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+  >
+    <div className={`mb-1 transition-all duration-300 ${active ? '-translate-y-1' : 'group-hover:-translate-y-0.5'}`}>
+      {icon}
+    </div>
+    <span className={`text-[9px] font-medium tracking-wider uppercase transition-all duration-300 ${active ? 'opacity-100 font-bold' : 'opacity-0 h-0 overflow-hidden'}`}>{label}</span>
+    {active && <div className="w-1 h-1 rounded-full bg-amber-500 mt-1"></div>}
+  </button>
+);
+
+const DaySubtitle = ({ text }) => (
+  <div className="flex items-center gap-3 mb-2 px-1">
+    <div className="h-px bg-slate-200 flex-1"></div>
+    <span className="text-xs text-slate-500 font-serif italic font-medium">{text}</span>
+    <div className="h-px bg-slate-200 flex-1"></div>
+  </div>
+);
+
+const SectionLabel = ({ text }) => (
+  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 mt-6 mb-3">
+    {text}
+  </h3>
+);
+
+// モバイルでタップしやすいようにボタン化してリンクを明確に
+const TimelineItem = ({ time, icon, title, desc, link, highlight, questTarget, isConquered, onToggle }) => (
+  <div className={`relative p-5 rounded-2xl border transition-all duration-500 group ${highlight ? 'bg-gradient-to-br from-amber-50/50 to-white border-amber-200 shadow-md shadow-amber-100/20' : 'bg-white border-slate-200 shadow-lg shadow-slate-200/50'}`}>
+    <div className="flex items-start gap-4">
+      <div className="flex flex-col items-center gap-2 pt-1 min-w-[48px]">
+        <div className="text-[11px] font-bold text-slate-500 font-serif">{time}</div>
+        <div className={`p-2.5 rounded-full transition-colors ${highlight ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700'}`}>
+          {icon}
+        </div>
+        {!highlight && <div className="w-px h-full bg-slate-100 my-1"></div>}
+      </div>
+      <div className="flex-1 min-w-0 pt-0.5">
+        <h4 className={`font-serif font-bold text-base ${highlight ? 'text-amber-900' : 'text-slate-800'}`}>{title}</h4>
+        {desc && <p className="text-xs text-slate-600 mt-1.5 leading-relaxed font-medium">{desc}</p>}
+        {link && (
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              window.open(link, '_blank', 'noopener,noreferrer');
+            }} 
+            className="inline-flex items-center justify-center gap-1.5 text-xs bg-slate-100 text-slate-700 mt-3 px-4 py-2 rounded-full hover:bg-slate-200 hover:text-slate-900 transition-all cursor-pointer font-bold w-full sm:w-auto border border-slate-200"
+          >
+            Visit Website <ChevronRight size={14} />
+          </button>
+        )}
+        
+        {questTarget && (
+          <button 
+            onClick={onToggle}
+            className={`mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all active:scale-95 ${
+              isConquered 
+                ? 'bg-amber-500 text-white shadow-lg shadow-amber-200' 
+                : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-50'
+            }`}
+          >
+            {isConquered ? <><CheckCircle size={14} /> COMPLETED</> : <><Circle size={14} /> QUEST CHECK</>}
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+const NoodleCard = ({ type, subtitle, shops, desc, day, isDone, onToggle, imgColor, accentColor, emoji }) => (
+  <div className={`relative overflow-hidden rounded-2xl border transition-all duration-500 ${isDone ? 'border-amber-400 bg-white shadow-xl shadow-amber-100/50' : 'border-slate-200 bg-white shadow-lg shadow-slate-200/50'}`}>
+    <div className={`h-24 ${imgColor} flex items-center justify-between px-6 relative overflow-hidden`}>
+        <div className="z-10">
+           <p className={`text-[10px] font-bold uppercase tracking-widest opacity-80 ${accentColor}`}>{day}</p>
+           <h3 className={`font-serif text-xl font-bold ${accentColor}`}>{type}</h3>
+           <p className={`text-xs font-serif italic opacity-90 font-medium ${accentColor}`}>{subtitle}</p>
+        </div>
+        <div className="text-5xl z-10 transform translate-y-2">{emoji}</div>
+        
+        {/* Decorative circle */}
+        <div className="absolute -right-4 -top-8 w-32 h-32 bg-white/30 rounded-full blur-xl"></div>
+    </div>
+    
+    <div className="p-5">
+      <div className="flex justify-between items-start mb-3">
+        <p className="text-xs text-slate-600 leading-relaxed font-medium flex-1 pr-4">{desc}</p>
+        <button onClick={onToggle} className={`transition-transform duration-300 active:scale-90 shrink-0 ${isDone ? 'text-amber-500' : 'text-slate-300 hover:text-amber-400'}`}>
+          {isDone ? <CheckCircle size={28} className="fill-current" /> : <Circle size={28} strokeWidth={1.5} />}
+        </button>
+      </div>
+      
+      <div className="pt-3 border-t border-slate-100">
+        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Recommended Shops</p>
+        <div className="flex flex-wrap gap-2">
+          {shops.map(shop => (
+            <span key={shop} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded-md border border-slate-200 font-medium">
+              {shop}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const GourmetCard = ({ title, sub, desc, emoji }) => (
+  <div className="bg-white p-4 rounded-2xl shadow-md shadow-slate-200/50 border border-slate-200 flex flex-col items-center text-center group hover:-translate-y-1 transition-transform duration-300">
+    <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">{emoji}</div>
+    <p className="text-[9px] text-amber-600 font-bold uppercase tracking-wider mb-0.5">{sub}</p>
+    <h4 className="font-serif font-bold text-sm text-slate-800">{title}</h4>
+    <p className="text-[10px] text-slate-500 mt-1 font-medium">{desc}</p>
+  </div>
+);
+
+const PrepItem = ({ id, title, desc, checked, onToggle, icon }) => (
+  <div 
+    onClick={onToggle}
+    className={`p-4 rounded-xl border transition-all duration-300 cursor-pointer flex items-center gap-4 group ${
+      checked 
+        ? 'bg-amber-50/50 border-amber-200' 
+        : 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-md'
+    }`}
+  >
+    <div className={`p-2 rounded-full transition-colors ${checked ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500 group-hover:text-amber-600'}`}>
+      {checked ? <Check size={16} /> : icon}
+    </div>
+    <div className="flex-1">
+      <h4 className={`text-sm font-bold font-serif ${checked ? 'text-slate-900' : 'text-slate-700'}`}>{title}</h4>
+      <p className="text-xs text-slate-500 mt-0.5 font-medium">{desc}</p>
+    </div>
+  </div>
+);
+
+const SouvenirItem = ({ id, title, desc, checked, onToggle }) => (
+  <div 
+    onClick={onToggle}
+    className={`p-4 flex items-start gap-4 cursor-pointer transition-all duration-300 group ${checked ? 'bg-slate-50' : 'hover:bg-slate-50'}`}
+  >
+    <div className={`mt-0.5 transition-colors ${checked ? 'text-amber-500' : 'text-slate-300 group-hover:text-amber-400'}`}>
+      {checked ? <CheckCircle size={20} className="fill-current" /> : <Circle size={20} strokeWidth={1.5} />}
+    </div>
+    <div>
+      <h4 className={`text-sm font-serif font-bold transition-all ${checked ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+        {title}
+      </h4>
+      <p className="text-xs text-slate-500 mt-1 font-medium">{desc}</p>
+    </div>
+  </div>
+);
+
+// SpotCard コンポーネント (MAPタブ用)
+const SpotCard = ({ spot, isActive, onActivate }) => {
+  const getIcon = (category) => {
+    switch(category) {
+      case 'hotel': return <Building size={18} />;
+      case 'food': return <Utensils size={18} />;
+      case 'shop': return <ShoppingBag size={18} />;
+      case 'sight': return <Camera size={18} />;
+      default: return <MapPin size={18} />;
+    }
+  };
+
+  const handleOpenGoogleMap = (e) => {
+    e.stopPropagation();
+    // スマホアプリ起動用のURLスキーム
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(spot.query)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleOpenWebsite = (e) => {
+    e.stopPropagation();
+    window.open(spot.url, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <div 
+      onClick={onActivate}
+      className={`relative p-4 rounded-xl border transition-all cursor-pointer ${
+        isActive 
+          ? 'bg-amber-50/50 border-amber-300 shadow-md ring-1 ring-amber-200' 
+          : 'bg-white border-slate-200 hover:border-amber-200'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`p-2 rounded-full mt-0.5 ${isActive ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+          {getIcon(spot.category)}
+        </div>
+        <div className="flex-1">
+          <div className="flex justify-between items-start">
+            <h4 className={`text-sm font-bold font-serif ${isActive ? 'text-slate-900' : 'text-slate-700'}`}>{spot.title}</h4>
+            {isActive && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">Showing</span>}
+          </div>
+          <p className="text-[10px] text-slate-500 mt-0.5 mb-3">{spot.desc}</p>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={handleOpenGoogleMap}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-slate-800 text-white text-[10px] font-bold py-2 rounded-lg hover:bg-slate-700 active:scale-95 transition-all"
+            >
+              <Navigation size={12} /> Google Maps
+            </button>
+            <button 
+              onClick={handleOpenWebsite}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-slate-200 text-slate-600 text-[10px] font-bold py-2 rounded-lg hover:bg-slate-50 active:scale-95 transition-all"
+            >
+              <ExternalLink size={12} /> Website
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
