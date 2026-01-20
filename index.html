@@ -133,6 +133,7 @@
             const [activeDay, setActiveDay] = useState(1);
             const [currentMapQuery, setCurrentMapQuery] = useState('盛岡駅');
             const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+            const [isTripStarted, setIsTripStarted] = useState(false);
 
             // データの読み込み
             const [conqueredNoodles, setConqueredNoodles] = useState(() => {
@@ -169,8 +170,14 @@
 
             // カウントダウン
             useEffect(() => {
-                const targetDate = new Date('2026-01-24T00:00:00');
-                const interval = setInterval(() => {
+                
+                // 【確認用】ここで目標日時を設定します
+                // 通常利用（本番）: '2026-01-24T11:56:00'
+                // メッセージ確認用: 過去の日付（例: '2024-01-01T00:00:00'）にすると、すぐに「Buon viaggio」が表示されます。
+                
+                const targetDate = new Date('2026-01-24T11:56:00'); 
+                
+                const calculateTimeLeft = () => {
                     const now = new Date();
                     const difference = targetDate - now;
                     if (difference > 0) {
@@ -180,8 +187,21 @@
                             minutes: Math.floor((difference / 1000 / 60) % 60),
                             seconds: Math.floor((difference / 1000) % 60)
                         });
+                        setIsTripStarted(false);
                     } else {
                         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+                        setIsTripStarted(true);
+                        // cleanup will handle interval clearing
+                    }
+                };
+
+                // Initial check
+                calculateTimeLeft();
+
+                const interval = setInterval(() => {
+                    calculateTimeLeft();
+                    const now = new Date();
+                    if (targetDate - now <= 0) {
                         clearInterval(interval);
                     }
                 }, 1000);
@@ -234,31 +254,45 @@
                             </h1>
 
                             <div className="flex flex-col w-full gap-4 animate-fadeIn" style={{ animationDelay: '0.4s' }}>
-                                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 w-full shadow-lg">
-                                    <span className="text-[10px] text-slate-300 uppercase tracking-widest mb-2 flex items-center justify-center gap-1 font-bold">
-                                        <ClockIcon size={12} className="text-amber-400" /> Time Until Departure
-                                    </span>
-                                    <div className="flex items-center justify-center gap-2 sm:gap-4 font-serif text-white mt-1">
-                                        <div className="flex flex-col items-center min-w-[3.5rem]">
-                                            <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none drop-shadow-md">{timeLeft.days}</span>
-                                            <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">DAYS</span>
+                                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 w-full shadow-lg min-h-[100px] flex flex-col justify-center items-center">
+                                    {isTripStarted ? (
+                                        <div className="animate-fadeIn text-center">
+                                            <p className="text-amber-400 font-serif text-xl italic mb-1 flex items-center justify-center gap-2">
+                                                <SparklesIcon size={18} className="text-amber-300 animate-pulse" />
+                                                Buon viaggio
+                                                <SparklesIcon size={18} className="text-amber-300 animate-pulse" />
+                                            </p>
+                                            <p className="text-white text-xs font-bold tracking-widest">ボン・ビアッジョ</p>
+                                            <p className="text-slate-400 text-[10px] mt-1">良い旅を！</p>
                                         </div>
-                                        <span className="text-slate-500 text-xl pb-3">:</span>
-                                        <div className="flex flex-col items-center min-w-[2.5rem]">
-                                            <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none drop-shadow-md">{String(timeLeft.hours).padStart(2, '0')}</span>
-                                            <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">HOURS</span>
-                                        </div>
-                                        <span className="text-slate-500 text-xl pb-3">:</span>
-                                        <div className="flex flex-col items-center min-w-[2.5rem]">
-                                            <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none drop-shadow-md">{String(timeLeft.minutes).padStart(2, '0')}</span>
-                                            <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">MINS</span>
-                                        </div>
-                                        <span className="text-slate-500 text-xl pb-3">:</span>
-                                        <div className="flex flex-col items-center min-w-[2.5rem]">
-                                            <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none text-amber-400 drop-shadow-md">{String(timeLeft.seconds).padStart(2, '0')}</span>
-                                            <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">SECS</span>
-                                        </div>
-                                    </div>
+                                    ) : (
+                                        <>
+                                            <span className="text-[10px] text-slate-300 uppercase tracking-widest mb-2 flex items-center justify-center gap-1 font-bold">
+                                                <ClockIcon size={12} className="text-amber-400" /> Time Until Departure
+                                            </span>
+                                            <div className="flex items-center justify-center gap-2 sm:gap-4 font-serif text-white mt-1">
+                                                <div className="flex flex-col items-center min-w-[3.5rem]">
+                                                    <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none drop-shadow-md">{timeLeft.days}</span>
+                                                    <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">DAYS</span>
+                                                </div>
+                                                <span className="text-slate-500 text-xl pb-3">:</span>
+                                                <div className="flex flex-col items-center min-w-[2.5rem]">
+                                                    <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none drop-shadow-md">{String(timeLeft.hours).padStart(2, '0')}</span>
+                                                    <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">HOURS</span>
+                                                </div>
+                                                <span className="text-slate-500 text-xl pb-3">:</span>
+                                                <div className="flex flex-col items-center min-w-[2.5rem]">
+                                                    <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none drop-shadow-md">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                                                    <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">MINS</span>
+                                                </div>
+                                                <span className="text-slate-500 text-xl pb-3">:</span>
+                                                <div className="flex flex-col items-center min-w-[2.5rem]">
+                                                    <span className="text-2xl sm:text-3xl font-medium tabular-nums leading-none text-amber-400 drop-shadow-md">{String(timeLeft.seconds).padStart(2, '0')}</span>
+                                                    <span className="text-[9px] text-slate-300 font-sans tracking-wider mt-1 font-medium">SECS</span>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 flex items-center justify-between px-5 shadow-lg">
