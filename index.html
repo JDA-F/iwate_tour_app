@@ -52,6 +52,13 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        /* 切符風のギザギザ用クラス */
+        .ticket-jagged {
+            background-image: radial-gradient(circle at 10px 10px, transparent 10px, #fff 11px);
+            background-size: 20px 40px;
+            background-position: -10px -10px;
+        }
     </style>
 </head>
 <body class="bg-stone-50 text-stone-800">
@@ -102,6 +109,7 @@
         const CopyIcon = (props) => <Icon {...props} path={<><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></>} />;
         const MapIcon = (props) => <Icon {...props} path={<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />} />;
         const NavigationIcon = (props) => <Icon {...props} path={<polygon points="3 11 22 2 13 21 11 13 3 11" />} />;
+        const TicketIcon = (props) => <Icon {...props} path={<><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></>} />;
 
         // --- データ定義 ---
         const SPOTS = [
@@ -307,9 +315,14 @@
                                 {activeDay === 1 && (
                                     <div className="space-y-4 animate-fadeIn">
                                         <DaySubtitle text="到着と盛岡の夜" />
-                                        <TimelineItem time="14:30" icon={<TrainIcon size={16} />} title="盛岡駅 到着" desc="新幹線改札を出て、冬の澄んだ空気を感じながらホテルへ。" />
+                                        <TimelineItem time="11:56" icon={<TrainIcon size={16} />} title="東京駅 出発" desc="東北新幹線で盛岡へ向かいます。" />
+                                        <TimelineItem time="14:11" icon={<MapPinIcon size={16} />} title="盛岡駅 到着" desc="新幹線改札を出て、冬の澄んだ空気を感じながらホテルへ。" />
                                         <TimelineItem time="15:00" icon={<MapPinIcon size={16} />} title="Check-in" desc="リッチモンドホテル盛岡（大通）" />
-                                        <TimelineItem time="16:00" icon={<SnowflakeIcon size={16} />} title="まほら岩手" desc="「氷の世界」イベントへ。幻想的な風景を楽しむ" link="https://www.mahora-iwate.com/" />
+                                        <TimelineItem time="15:40" icon={<MapPinIcon size={16} />} title="バス受付開始" desc="盛岡駅西口2階バスターミナル26番乗り場へ集合。" />
+                                        <TimelineItem time="16:00" icon={<TrainIcon size={16} />} title="盛岡駅 出発" desc="専用バスにてまほら岩手へ。" />
+                                        <TimelineItem time="17:00" icon={<SnowflakeIcon size={16} />} title="まほら岩手 到着" desc="「氷の世界」イベントを散策。幻想的なライトアップを楽しむ。" link="https://www.mahora-iwate.com/" />
+                                        <TimelineItem time="19:30" icon={<TrainIcon size={16} />} title="まほら岩手 出発" desc="バスで盛岡駅へ戻ります。" />
+                                        <TimelineItem time="20:30" icon={<MapPinIcon size={16} />} title="盛岡駅西口 到着" desc="夕食へ向かいます。" />
                                         <TimelineItem 
                                             time="20:45" 
                                             icon={<UtensilsIcon size={16} />} 
@@ -348,21 +361,56 @@
                                     <div className="space-y-4 animate-fadeIn">
                                         <DaySubtitle text="伝統体験と旅の締めくくり" />
                                         <TimelineItem time="10:00" icon={<MapPinIcon size={16} />} title="盛岡手づくり村" desc="職人の技に触れる観光スポット。" link="https://tezukurimura.com/" />
-                                        <TimelineItem time="12:30" icon={<TrainIcon size={16} />} title="盛岡駅へ戻る" desc="" />
+                                        <TimelineItem time="11:30" icon={<TrainIcon size={16} />} title="盛岡駅へ戻る" desc="手づくり村からバス/タクシーで移動" />
                                         <TimelineItem 
-                                            time="13:00" 
+                                            time="12:00" 
                                             icon={<UtensilsIcon size={16} />} 
-                                            title="Lunch: わんこそば体験" 
+                                            title="Lunch: わんこそば体験 (予約済)" 
                                             desc="東家（あずまや）。掛け声と共に積み上げる、旅のハイライト。" 
                                             highlight 
                                             questTarget="wanko"
                                             isConquered={conqueredNoodles.wanko}
                                             onToggle={() => toggleNoodle('wanko')}
                                         />
-                                        <TimelineItem time="15:00" icon={<ShoppingBagIcon size={16} />} title="Shopping" desc="駅ビル「フェザン」で旅の思い出を購入。" link="https://fesan-jp.com/" />
-                                        <TimelineItem time="16:30" icon={<TrainIcon size={16} />} title="Departure" desc="新幹線で帰路へ。" />
+                                        <TimelineItem time="14:00" icon={<ShoppingBagIcon size={16} />} title="Shopping" desc="駅ビル「フェザン」で旅の思い出を購入。" link="https://fesan-jp.com/" />
+                                        <TimelineItem time="15:51" icon={<TrainIcon size={16} />} title="盛岡駅 出発" desc="18:04 東京駅着。思い出を胸に帰路へ。" />
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* TICKET TAB */}
+                        {activeTab === 'ticket' && (
+                            <div className="space-y-6 animate-fadeIn pb-24 relative z-30">
+                                <h2 className="text-lg font-serif font-medium text-slate-800 flex items-center gap-2 mb-4">
+                                    <span className="text-amber-600 font-bold">VI.</span> Tickets
+                                </h2>
+                                <TicketCard 
+                                    type="行き（往路）" 
+                                    date="2026/1/24" 
+                                    depStation="東京" 
+                                    arrStation="盛岡" 
+                                    depTime="11:56" 
+                                    arrTime="14:11" 
+                                    trainName="はやぶさ57号" 
+                                    car="4" 
+                                    seat="15-A, 15-B" 
+                                    iconColor="text-emerald-600"
+                                    accentColor="bg-emerald-50 border-emerald-200"
+                                />
+                                <TicketCard 
+                                    type="帰り（復路）" 
+                                    date="2026/1/26" 
+                                    depStation="盛岡" 
+                                    arrStation="東京" 
+                                    depTime="15:51" 
+                                    arrTime="18:04" 
+                                    trainName="はやぶさ28号" 
+                                    car="4" 
+                                    seat="10-D, 10-E" 
+                                    iconColor="text-indigo-600"
+                                    accentColor="bg-indigo-50 border-indigo-200"
+                                />
                             </div>
                         )}
 
@@ -516,12 +564,13 @@
                     </div>
 
                     {/* Navigation */}
-                    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-slate-200 flex justify-around items-end pb-6 pt-3 px-2 z-50 max-w-md mx-auto shadow-[0_-10px_40px_rgba(0,0,0,0.08)]">
-                        <NavButton active={activeTab === 'schedule'} onClick={() => setActiveTab('schedule')} icon={<CalendarIcon size={22} strokeWidth={1.5} />} label="Itinerary" />
-                        <NavButton active={activeTab === 'prep'} onClick={() => setActiveTab('prep')} icon={<BriefcaseIcon size={22} strokeWidth={1.5} />} label="Prepare" />
-                        <NavButton active={activeTab === 'food'} onClick={() => setActiveTab('food')} icon={<UtensilsIcon size={22} strokeWidth={1.5} />} label="Dining" />
-                        <NavButton active={activeTab === 'souvenir'} onClick={() => setActiveTab('souvenir')} icon={<ShoppingBagIcon size={22} strokeWidth={1.5} />} label="Souvenirs" />
-                        <NavButton active={activeTab === 'map'} onClick={() => setActiveTab('map')} icon={<MapIcon size={22} strokeWidth={1.5} />} label="Map" />
+                    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-slate-200 flex justify-between items-end pb-6 pt-3 px-4 z-50 max-w-md mx-auto shadow-[0_-10px_40px_rgba(0,0,0,0.08)]">
+                        <NavButton active={activeTab === 'schedule'} onClick={() => setActiveTab('schedule')} icon={<CalendarIcon size={20} strokeWidth={1.5} />} label="Itinerary" />
+                        <NavButton active={activeTab === 'ticket'} onClick={() => setActiveTab('ticket')} icon={<TicketIcon size={20} strokeWidth={1.5} />} label="Ticket" />
+                        <NavButton active={activeTab === 'food'} onClick={() => setActiveTab('food')} icon={<UtensilsIcon size={20} strokeWidth={1.5} />} label="Dining" />
+                        <NavButton active={activeTab === 'souvenir'} onClick={() => setActiveTab('souvenir')} icon={<ShoppingBagIcon size={20} strokeWidth={1.5} />} label="Souvenirs" />
+                        <NavButton active={activeTab === 'map'} onClick={() => setActiveTab('map')} icon={<MapIcon size={20} strokeWidth={1.5} />} label="Map" />
+                        <NavButton active={activeTab === 'prep'} onClick={() => setActiveTab('prep')} icon={<BriefcaseIcon size={20} strokeWidth={1.5} />} label="Prepare" />
                     </div>
                 </div>
             );
@@ -531,9 +580,53 @@
         const NavButton = ({ active, onClick, icon, label }) => (
             <button onClick={onClick} className={`flex flex-col items-center justify-center w-full transition-all duration-300 group ${active ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>
                 <div className={`mb-1 transition-all duration-300 ${active ? '-translate-y-1' : 'group-hover:-translate-y-0.5'}`}>{icon}</div>
-                <span className={`text-[9px] font-medium tracking-wider uppercase transition-all duration-300 ${active ? 'opacity-100 font-bold' : 'opacity-0 h-0 overflow-hidden'}`}>{label}</span>
+                <span className={`text-[8px] font-bold tracking-wider uppercase transition-all duration-300 ${active ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>{label}</span>
                 {active && <div className="w-1 h-1 rounded-full bg-amber-500 mt-1"></div>}
             </button>
+        );
+
+        const TicketCard = ({ type, date, depStation, arrStation, depTime, arrTime, trainName, car, seat, iconColor, accentColor }) => (
+            <div className={`relative bg-white rounded-2xl shadow-lg border-2 ${accentColor} overflow-hidden`}>
+                <div className="bg-slate-50 p-3 border-b border-slate-100 flex justify-between items-center">
+                    <span className={`text-xs font-bold uppercase tracking-wider ${iconColor}`}>{type}</span>
+                    <span className="text-xs font-serif text-slate-500">{date}</span>
+                </div>
+                <div className="p-5">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="text-center">
+                            <span className="block text-2xl font-bold text-slate-800 font-serif">{depTime}</span>
+                            <span className="text-xs text-slate-500 font-bold">{depStation}</span>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center px-4">
+                            <span className="text-[10px] text-slate-400 mb-1">JR 東北新幹線</span>
+                            <div className="w-full h-px bg-slate-300 relative">
+                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-t border-r border-slate-300 rotate-45"></div>
+                            </div>
+                        </div>
+                        <div className="text-center">
+                            <span className="block text-2xl font-bold text-slate-800 font-serif">{arrTime}</span>
+                            <span className="text-xs text-slate-500 font-bold">{arrStation}</span>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <TrainIcon className={`w-8 h-8 ${iconColor}`} strokeWidth={1.5} />
+                            <div>
+                                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">列車名</p>
+                                <p className="text-sm font-bold text-slate-700">{trainName}</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{car}号車 / 座席</p>
+                            <p className="text-lg font-bold text-slate-800 font-mono">{seat}</p>
+                        </div>
+                    </div>
+                </div>
+                {/* 装飾用の切り込み */}
+                <div className="absolute top-[46px] -left-2 w-4 h-4 bg-stone-50 rounded-full border border-slate-200"></div>
+                <div className="absolute top-[46px] -right-2 w-4 h-4 bg-stone-50 rounded-full border border-slate-200"></div>
+            </div>
         );
 
         const DaySubtitle = ({ text }) => (
